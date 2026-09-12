@@ -154,14 +154,14 @@ The `.pbix` report is created in Power BI Desktop, not by Python or VS Code.
 After opening Power BI and loading the CSV extracts, save it as:
 
 ```text
-powerbi/demand_forecast.pbix
+powerbi/report.pbix
 ```
 
-The `.pbix` file is not included in this checkout because it must be created
-locally in Power BI Desktop. Once it exists, publish it from the project root:
+The report is included in this repository as `powerbi/report.pbix`. Once you
+have updated it locally, publish it from the project root:
 
 ```powershell
-git add powerbi/demand_forecast.pbix
+git add powerbi/report.pbix
 git commit -m "Add Power BI report"
 git push
 ```
