@@ -63,6 +63,13 @@ The models were trained on 42,327 half-hours beginning in January 2023 and teste
 
 ![Diagnostics](powerbi/screenshots/diagnostics.png)
 
+The diagnostics page shows where the model fails rather than only reporting an
+overall score. Error peaks around midday, the highest-demand points tend to sit
+on the under-forecast side of the scatter, and Thursday is the worst weekday in
+this test set. I do not have a strong explanation for Thursday yet; keeping
+that unexplained result visible is more useful than pretending the model has
+identified a cause.
+
 ## How it works
 
 ```text
@@ -177,7 +184,7 @@ the activation command again:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\\.venv\\Scripts\\activate
+.\.venv\Scripts\activate
 ```
 
 On macOS or Linux, activate the environment with `source .venv/bin/activate`.
@@ -258,6 +265,17 @@ future leakage.
 ## Technology
 
 Python, pandas, and NumPy power the data work. LightGBM provides the models, PyArrow provides Parquet storage, and pytest covers the safety-critical feature logic. Power BI provides the report; GitHub Actions handles scheduled retraining; and GitHub Pages hosts the dashboard. The dashboard is hand-written HTML, CSS, and SVG so it remains a single self-contained file.
+
+## Skills demonstrated
+
+- Time-series feature engineering with forecast-time-safe lags and rolling windows
+- Leakage prevention and chronological train, validation, and test splits
+- Gradient-boosted modelling with LightGBM and baseline benchmarking
+- Resilient API ingestion with retries, caching, and resumable downloads
+- Data preparation with pandas, NumPy, and Parquet
+- Automated testing with pytest
+- Reproducible reporting through a self-contained dashboard and Power BI extracts
+- Scheduled retraining and publishing with GitHub Actions and GitHub Pages
 
 ## Data source
 
