@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Irish Grid Demand Forecast</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-0: #f4f4f2;
+    --surface-1: #fcfcfb;
+    --border:    #dedcd5;
+    --grid:      #e8e6df;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #78766f;
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface-0: #121211;
+      --surface-1: #1a1a19;
+      --border:    #34332f;
+      --grid:      #2a2926;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #94938a;
+      --series-1: #3987e5;
+      --series-2: #d95926;
+      --series-3: #199e70;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-0: #121211;
+    --surface-1: #1a1a19;
+    --border:    #34332f;
+    --grid:      #2a2926;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #94938a;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--surface-0); color: var(--text-primary);
+    font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  header { margin-bottom: 28px; }
+  h1 { font-size: 24px; font-weight: 640; letter-spacing: -0.015em; margin: 0 0 6px; }
+  .sub { color: var(--text-secondary); margin: 0; max-width: 62ch; }
+  .meta { color: var(--text-muted); font-size: 12px; margin-top: 10px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-bottom: 28px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; }
+  .tile .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+  .tile .value { font-size: 30px; font-weight: 620; letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .tile .note { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .card h2 { font-size: 15px; font-weight: 620; margin: 0 0 4px; letter-spacing: -0.005em; }
+  .card p.hint { font-size: 12.5px; color: var(--text-secondary); margin: 0 0 16px; max-width: 70ch; }
+
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+  button {
+    font: inherit; font-size: 12.5px; padding: 5px 11px; border-radius: 7px;
+    border: 1px solid var(--border); background: var(--surface-0); color: var(--text-primary); cursor: pointer;
+  }
+  button:hover { border-color: var(--text-muted); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  .range-label { font-size: 12.5px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12.5px; color: var(--text-secondary); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+
+  .chart { position: relative; width: 100%; overflow-x: auto; }
+  svg { display: block; width: 100%; height: auto; }
+  .axis text { fill: var(--text-muted); font-size: 11px; }
+  .axis line { stroke: var(--grid); stroke-width: 1; }
+  .tip {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity .1s;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 14px rgba(0,0,0,.13); z-index: 5;
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  .tip .row { display: flex; gap: 10px; justify-content: space-between; }
+  .tip .row b { font-weight: 600; }
+  .tip .head { color: var(--text-muted); margin-bottom: 4px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  th:first-child, td:first-child { text-align: left; }
+  th { font-weight: 600; color: var(--text-secondary); font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  tbody tr:last-child td { border-bottom: none; }
+  .best { font-weight: 640; }
+  .table-scroll { overflow-x: auto; }
+
+  footer { color: var(--text-muted); font-size: 12px; margin-top: 32px; line-height: 1.7; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--surface-0); padding: 1px 5px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Irish grid demand forecast</h1>
+  <p class="sub">Half-hourly all-island electricity demand, forecast up to 48 hours ahead and scored
+     against the operational rules of thumb it has to beat. Every number below comes from a held-out
+     test period the model never saw during training.</p>
+  <p class="meta" id="meta"></p>
+</header>
+
+<div class="tiles" id="tiles"></div>
+
+<section class="card">
+  <h2>Forecast against reality</h2>
+  <p class="hint">24 hours ahead, over the held-out test period. The naive line is
+     &ldquo;the same half hour last week&rdquo; &mdash; the benchmark the model has to beat.</p>
+  <div class="controls">
+    <button id="prev">&larr; Previous week</button>
+    <button id="next">Next week &rarr;</button>
+    <span class="range-label" id="rangeLabel"></span>
+  </div>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--series-1)"></i> Actual demand</span>
+    <span><i class="swatch" style="background:var(--series-2)"></i> Model forecast</span>
+    <span><i class="swatch" style="background:var(--series-3)"></i> Naive (last week)</span>
+  </div>
+  <div class="chart" id="seriesChart"><div class="tip" id="seriesTip"></div></div>
+</section>
+
+<section class="card">
+  <h2>Error grows with distance, then flattens</h2>
+  <p class="hint">Mean absolute error by forecast horizon. The naive baselines are flat by
+     construction &mdash; they ignore how far ahead you are asking.</p>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--series-1)"></i> Model</span>
+    <span><i class="swatch" style="background:var(--series-2)"></i> Naive (last week)</span>
+    <span><i class="swatch" style="background:var(--series-3)"></i> Naive (4-week mean)</span>
+  </div>
+  <div class="chart" id="horizonChart"><div class="tip" id="horizonTip"></div></div>
+</section>
+
+<section class="card">
+  <h2>When the model struggles</h2>
+  <p class="hint" id="hourCaption"></p>
+  <div class="chart" id="hourChart"><div class="tip" id="hourTip"></div></div>
+</section>
+
+<section class="card">
+  <h2>Full scoreboard</h2>
+  <p class="hint">MAE in megawatts, MAPE as a percentage of actual demand, and skill &mdash; the share
+     of the naive baseline&rsquo;s error the model removes. Lower MAE is better; higher skill is better.</p>
+  <div class="table-scroll"><table id="scoreTable"></table></div>
+</section>
+
+<footer id="footer"></footer>
+</div>
+
+<script>
+const D = __PAYLOAD__;
+
+/* ---------- helpers ---------- */
+const fmt = (n, d = 0) => n == null || Number.isNaN(n) ? "—" : n.toLocaleString("en-IE", {minimumFractionDigits: d, maximumFractionDigits: d});
+const el = (id) => document.getElementById(id);
+const SVG_NS = "http://www.w3.org/2000/svg";
+function svg(tag, attrs = {}) {
+  const node = document.createElementNS(SVG_NS, tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  return node;
+}
+function niceTicks(min, max, count = 5) {
+  const span = (max - min) || 1;
+  const raw = span / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= raw) || 10 * mag;
+  const out = [];
+  for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+
+/* ---------- header ---------- */
+const s = D.summary;
+el("meta").textContent =
+  `Trained on ${fmt(s.n_train)} half-hours from ${s.span_start} to ${s.valid_start}. ` +
+  `Tested on ${fmt(s.n_test)} unseen half-hours from ${s.test_start} to ${s.span_end}. ` +
+  `Generated ${D.generated}.`;
+
+const h = D.headline;
+el("tiles").innerHTML = [
+  {label: `MAE at ${h.horizon}h ahead`, value: `${fmt(h.mae)} MW`, note: `Baseline: ${fmt(h.baseline_mae)} MW`},
+  {label: "Mean abs. % error", value: `${h.mape}%`, note: "Share of actual demand"},
+  {label: "Skill vs naive", value: `${h.skill}%`, note: "Of the baseline's error, removed"},
+  {label: "Bias", value: `${h.bias > 0 ? "+" : ""}${fmt(h.bias)} MW`, note: h.bias > 0 ? "Forecast runs high" : "Forecast runs low"},
+].map(t => `<div class="tile"><div class="label">${t.label}</div><div class="value">${t.value}</div><div class="note">${t.note}</div></div>`).join("");
+
+/* ---------- chart 1: actual vs forecast ---------- */
+const PTS_PER_WEEK = 48 * 7;
+let weekOffset = 0;
+const totalWeeks = Math.max(1, Math.ceil(D.series.t.length / PTS_PER_WEEK));
+
+function drawSeries() {
+  const host = el("seriesChart");
+  host.querySelectorAll("svg").forEach(n => n.remove());
+
+  const start = Math.max(0, D.series.t.length - (weekOffset + 1) * PTS_PER_WEEK);
+  const end = Math.min(D.series.t.length, start + PTS_PER_WEEK);
+  const idx = [];
+  for (let i = start; i < end; i++) idx.push(i);
+  if (!idx.length) return;
+
+  const W = 1000, H = 320, ML = 54, MR = 14, MT = 14, MB = 34;
+  const iw = W - ML - MR, ih = H - MT - MB;
+
+  const vals = [];
+  for (const i of idx) {
+    vals.push(D.series.actual[i], D.series.model[i]);
+    if (D.series.naive.length) vals.push(D.series.naive[i]);
+  }
+  const clean = vals.filter(v => v != null && !Number.isNaN(v));
+  const lo = Math.min(...clean), hi = Math.max(...clean);
+  const pad = (hi - lo) * 0.08 || 100;
+  const y0 = lo - pad, y1 = hi + pad;
+
+  const x = i => ML + (idx.indexOf(i) / Math.max(1, idx.length - 1)) * iw;
+  const y = v => MT + ih - ((v - y0) / (y1 - y0)) * ih;
+
+  const root = svg("svg", {viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Actual demand against model and naive forecasts"});
+
+  const axis = svg("g", {class: "axis"});
+  for (const t of niceTicks(y0, y1, 5)) {
+    axis.appendChild(svg("line", {x1: ML, x2: W - MR, y1: y(t), y2: y(t)}));
+    const lab = svg("text", {x: ML - 8, y: y(t) + 4, "text-anchor": "end"});
+    lab.textContent = fmt(t);
+    axis.appendChild(lab);
+  }
+  const stepLabels = Math.ceil(idx.length / 7);
+  idx.forEach((i, k) => {
+    if (k % stepLabels) return;
+    const lab = svg("text", {x: x(i), y: H - 10, "text-anchor": "middle"});
+    lab.textContent = D.series.t[i].slice(5, 10);
+    axis.appendChild(lab);
+  });
+  root.appendChild(axis);
+
+  const line = (key, colorVar) => {
+    const d = idx.map((i, k) => {
+      const v = D.series[key][i];
+      if (v == null || Number.isNaN(v)) return null;
+      return `${k === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`;
+    }).filter(Boolean).join(" ");
+    root.appendChild(svg("path", {d, fill: "none", stroke: `var(${colorVar})`,
+      "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round"}));
+  };
+  if (D.series.naive.length) line("naive", "--series-3");
+  line("actual", "--series-1");
+  line("model", "--series-2");
+
+  const cross = svg("line", {y1: MT, y2: MT + ih, stroke: "var(--text-muted)",
+    "stroke-width": 1, "stroke-dasharray": "3 3", opacity: 0});
+  root.appendChild(cross);
+  const dots = ["--series-1", "--series-2", "--series-3"].map(c => {
+    const dot = svg("circle", {r: 4.5, fill: `var(${c})`, stroke: "var(--surface-1)",
+      "stroke-width": 2, opacity: 0});
+    root.appendChild(dot);
+    return dot;
+  });
+
+  const tip = el("seriesTip");
+  const hit = svg("rect", {x: ML, y: MT, width: iw, height: ih, fill: "transparent"});
+  root.appendChild(hit);
+
+  hit.addEventListener("pointerleave", () => {
+    tip.style.opacity = 0; cross.setAttribute("opacity", 0);
+    dots.forEach(d => d.setAttribute("opacity", 0));
+  });
+  hit.addEventListener("pointermove", ev => {
+    const box = root.getBoundingClientRect();
+    const px = (ev.clientX - box.left) / box.width * W;
+    const k = Math.round(((px - ML) / iw) * (idx.length - 1));
+    const i = idx[Math.max(0, Math.min(idx.length - 1, k))];
+    if (i == null) return;
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("opacity", 1);
+    const keys = ["actual", "model", "naive"];
+    keys.forEach((key, n) => {
+      const v = D.series[key][i];
+      if (v == null || Number.isNaN(v)) { dots[n].setAttribute("opacity", 0); return; }
+      dots[n].setAttribute("cx", x(i)); dots[n].setAttribute("cy", y(v)); dots[n].setAttribute("opacity", 1);
+    });
+    const err = D.series.model[i] - D.series.actual[i];
+    tip.innerHTML =
+      `<div class="head">${D.series.t[i].replace("T", " ")}</div>` +
+      `<div class="row"><span>Actual</span><b>${fmt(D.series.actual[i])} MW</b></div>` +
+      `<div class="row"><span>Model</span><b>${fmt(D.series.model[i])} MW</b></div>` +
+      (D.series.naive.length ? `<div class="row"><span>Naive</span><b>${fmt(D.series.naive[i])} MW</b></div>` : "") +
+      `<div class="row"><span>Model error</span><b>${err > 0 ? "+" : ""}${fmt(err)} MW</b></div>`;
+    tip.style.opacity = 1;
+    const left = (x(i) / W) * box.width;
+    tip.style.left = Math.min(box.width - 168, Math.max(0, left + 14)) + "px";
+    tip.style.top = "14px";
+  });
+
+  host.insertBefore(root, tip);
+  el("rangeLabel").textContent = `${D.series.t[start].slice(0, 10)} to ${D.series.t[end - 1].slice(0, 10)}`;
+  el("prev").disabled = weekOffset >= totalWeeks - 1;
+  el("next").disabled = weekOffset <= 0;
+}
+el("prev").addEventListener("click", () => { weekOffset = Math.min(totalWeeks - 1, weekOffset + 1); drawSeries(); });
+el("next").addEventListener("click", () => { weekOffset = Math.max(0, weekOffset - 1); drawSeries(); });
+drawSeries();
+
+/* ---------- chart 2: MAE by horizon ---------- */
+(function () {
+  const host = el("horizonChart"), tip = el("horizonTip");
+  const hs = D.byHorizon.horizons;
+  const W = 1000, H = 280, ML = 54, MR = 96, MT = 16, MB = 40;
+  const iw = W - ML - MR, ih = H - MT - MB;
+
+  const all = [...D.byHorizon.model, ...D.byHorizon.naive_last_week, ...D.byHorizon.naive_4week_mean];
+  const y1v = Math.max(...all) * 1.1, y0v = 0;
+  const x = k => ML + (k / Math.max(1, hs.length - 1)) * iw;
+  const y = v => MT + ih - ((v - y0v) / (y1v - y0v)) * ih;
+
+  const root = svg("svg", {viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Mean absolute error by forecast horizon"});
+  const axis = svg("g", {class: "axis"});
+  for (const t of niceTicks(y0v, y1v, 5)) {
+    axis.appendChild(svg("line", {x1: ML, x2: ML + iw, y1: y(t), y2: y(t)}));
+    const lab = svg("text", {x: ML - 8, y: y(t) + 4, "text-anchor": "end"});
+    lab.textContent = fmt(t);
+    axis.appendChild(lab);
+  }
+  hs.forEach((hv, k) => {
+    const lab = svg("text", {x: x(k), y: H - 14, "text-anchor": "middle"});
+    lab.textContent = `${hv}h`;
+    axis.appendChild(lab);
+  });
+  const unit = svg("text", {x: ML - 8, y: MT - 2, "text-anchor": "end"});
+  unit.textContent = "MW";
+  axis.appendChild(unit);
+  root.appendChild(axis);
+
+  const draw = (key, colorVar, label) => {
+    const vals = D.byHorizon[key];
+    const d = vals.map((v, k) => `${k === 0 ? "M" : "L"}${x(k).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+    root.appendChild(svg("path", {d, fill: "none", stroke: `var(${colorVar})`,
+      "stroke-width": 2, "stroke-linejoin": "round"}));
+    vals.forEach((v, k) => {
+      root.appendChild(svg("circle", {cx: x(k), cy: y(v), r: 4,
+        fill: `var(${colorVar})`, stroke: "var(--surface-1)", "stroke-width": 2}));
+    });
+    const last = vals.length - 1;
+    const t = svg("text", {x: x(last) + 10, y: y(vals[last]) + 4, fill: "var(--text-secondary)",
+      "font-size": 11.5});
+    t.textContent = label;
+    root.appendChild(t);
+  };
+  draw("naive_4week_mean", "--series-3", "4-week mean");
+  draw("naive_last_week", "--series-2", "Last week");
+  draw("model", "--series-1", "Model");
+
+  const hit = svg("rect", {x: ML, y: MT, width: iw, height: ih, fill: "transparent"});
+  root.appendChild(hit);
+  hit.addEventListener("pointerleave", () => tip.style.opacity = 0);
+  hit.addEventListener("pointermove", ev => {
+    const box = root.getBoundingClientRect();
+    const px = (ev.clientX - box.left) / box.width * W;
+    const k = Math.max(0, Math.min(hs.length - 1, Math.round(((px - ML) / iw) * (hs.length - 1))));
+    tip.innerHTML =
+      `<div class="head">${hs[k]} hours ahead</div>` +
+      `<div class="row"><span>Model</span><b>${fmt(D.byHorizon.model[k])} MW</b></div>` +
+      `<div class="row"><span>Last week</span><b>${fmt(D.byHorizon.naive_last_week[k])} MW</b></div>` +
+      `<div class="row"><span>Skill</span><b>${D.byHorizon.skill[k]}%</b></div>`;
+    tip.style.opacity = 1;
+    const left = (x(k) / W) * box.width;
+    tip.style.left = Math.min(box.width - 170, Math.max(0, left + 14)) + "px";
+    tip.style.top = "10px";
+  });
+  host.insertBefore(root, tip);
+})();
+
+/* ---------- chart 3: error by hour ---------- */
+el("hourCaption").innerHTML = D.hourCaption;
+(function () {
+  const host = el("hourChart"), tip = el("hourTip");
+  const vals = D.byHour.mae;
+  const W = 1000, H = 240, ML = 54, MR = 14, MT = 16, MB = 40;
+  const iw = W - ML - MR, ih = H - MT - MB;
+  const y1v = Math.max(...vals) * 1.15;
+  const bw = iw / vals.length;
+  const y = v => MT + ih - (v / y1v) * ih;
+
+  const root = svg("svg", {viewBox: `0 0 ${W} ${H}`, role: "img",
+    "aria-label": "Mean absolute error by hour of day"});
+  const axis = svg("g", {class: "axis"});
+  for (const t of niceTicks(0, y1v, 4)) {
+    axis.appendChild(svg("line", {x1: ML, x2: ML + iw, y1: y(t), y2: y(t)}));
+    const lab = svg("text", {x: ML - 8, y: y(t) + 4, "text-anchor": "end"});
+    lab.textContent = fmt(t);
+    axis.appendChild(lab);
+  }
+  root.appendChild(axis);
+
+  const peak = vals.indexOf(Math.max(...vals));
+  vals.forEach((v, k) => {
+    const bx = ML + k * bw + 1;
+    const bwid = Math.max(1, bw - 2);
+    root.appendChild(svg("path", {
+      d: `M${bx},${MT + ih} L${bx},${y(v) + 4} Q${bx},${y(v)} ${bx + 4},${y(v)}
+          L${bx + bwid - 4},${y(v)} Q${bx + bwid},${y(v)} ${bx + bwid},${y(v) + 4}
+          L${bx + bwid},${MT + ih} Z`,
+      fill: "var(--series-1)"}));
+    if (k % 3 === 0) {
+      const lab = svg("text", {x: bx + bwid / 2, y: H - 14, "text-anchor": "middle",
+        fill: "var(--text-muted)", "font-size": 11});
+      lab.textContent = `${String(k).padStart(2, "0")}`;
+      root.appendChild(lab);
+    }
+    if (k === peak) {
+      const lab = svg("text", {x: bx + bwid / 2, y: y(v) - 7, "text-anchor": "middle",
+        fill: "var(--text-secondary)", "font-size": 11.5, "font-weight": 600});
+      lab.textContent = `${fmt(v)} MW`;
+      root.appendChild(lab);
+    }
+  });
+  const unit = svg("text", {x: ML - 8, y: MT - 2, "text-anchor": "end", fill: "var(--text-muted)",
+    "font-size": 11});
+  unit.textContent = "MW";
+  root.appendChild(unit);
+
+  const hit = svg("rect", {x: ML, y: MT, width: iw, height: ih, fill: "transparent"});
+  root.appendChild(hit);
+  hit.addEventListener("pointerleave", () => tip.style.opacity = 0);
+  hit.addEventListener("pointermove", ev => {
+    const box = root.getBoundingClientRect();
+    const px = (ev.clientX - box.left) / box.width * W;
+    const k = Math.max(0, Math.min(23, Math.floor((px - ML) / bw)));
+    const b = D.byHour.bias[k];
+    tip.innerHTML =
+      `<div class="head">${String(k).padStart(2, "0")}:00 &ndash; ${String(k).padStart(2, "0")}:59</div>` +
+      `<div class="row"><span>Mean abs. error</span><b>${fmt(vals[k])} MW</b></div>` +
+      `<div class="row"><span>Bias</span><b>${b > 0 ? "+" : ""}${fmt(b)} MW</b></div>`;
+    tip.style.opacity = 1;
+    const left = (ML + k * bw) / W * box.width;
+    tip.style.left = Math.min(box.width - 190, Math.max(0, left + 14)) + "px";
+    tip.style.top = "10px";
+  });
+  host.insertBefore(root, tip);
+})();
+
+/* ---------- table ---------- */
+(function () {
+  const hs = D.byHorizon.horizons;
+  const rows = hs.map((hv, k) => `
+    <tr>
+      <td>${hv} h</td>
+      <td class="best">${fmt(D.byHorizon.model[k], 1)}</td>
+      <td>${D.byHorizon.mape_model[k]}%</td>
+      <td>${fmt(D.byHorizon.naive_last_week[k], 1)}</td>
+      <td>${fmt(D.byHorizon.naive_4week_mean[k], 1)}</td>
+      <td class="best">${D.byHorizon.skill[k]}%</td>
+    </tr>`).join("");
+  el("scoreTable").innerHTML = `
+    <thead><tr>
+      <th>Horizon</th><th>Model MAE (MW)</th><th>Model MAPE</th>
+      <th>Naive last week</th><th>Naive 4-week mean</th><th>Skill</th>
+    </tr></thead><tbody>${rows}</tbody>`;
+})();
+
+el("footer").innerHTML =
+  `Data: EirGrid Smart Grid Dashboard, all-island system demand at 15-minute resolution, ` +
+  `resampled to half-hourly. Model: LightGBM, one model per horizon, trained on calendar features ` +
+  `and lagged demand available at the forecast origin. Splits are chronological; no shuffling. ` +
+  `Rebuild with <code>python scripts/run_experiment.py &amp;&amp; python scripts/build_dashboard.py</code>.`;
+</script>
+</body>
+</html>

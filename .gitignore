@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.idea/
+.vscode/
+.pytest_cache/
+
+# Downloaded months. Reproducible from fetch_history.py, and large.
+data/raw/
+data/processed/
+
+# Fetch logs
+fetch.log
+fetch.out

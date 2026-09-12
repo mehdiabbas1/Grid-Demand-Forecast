@@ -1,0 +1,93 @@
+name: Refresh forecast dashboard
+
+# Runs every morning, pulls whatever new grid data has appeared, retrains,
+# rebuilds the dashboard and commits it. GitHub Pages serves the committed
+# dashboard.html, so the published page updates itself with no server.
+on:
+  schedule:
+    - cron: "20 6 * * *"   # 06:20 UTC daily
+  workflow_dispatch:        # and on demand from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-dashboard
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # The downloaded months never change, so caching them means each run
+      # only fetches what is new. This matters: the EirGrid service throttles,
+      # and re-downloading three years every morning would fail.
+      - name: Restore data cache
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: eirgrid-raw-${{ github.run_id }}
+          restore-keys: eirgrid-raw-
+
+      - name: Fetch new data
+        run: python fetch_history.py
+        continue-on-error: true   # a throttled fetch should not lose the run
+
+      - name: Run tests
+        run: python -m pytest tests/ -q
+
+      # The cache starts empty, and a cold three year download will not finish
+      # inside the job timeout against a service that throttles this hard. So
+      # check before retraining rather than failing the run. Once enough months
+      # have accumulated in the cache the rest of the job starts working on its
+      # own, and until then the committed results stay as they are.
+      - name: Check whether there is data to train on
+        id: data
+        run: |
+          if [ -n "$(find data/raw -name '*.parquet' 2>/dev/null | head -1)" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "Found $(find data/raw -name '*.parquet' | wc -l) cached months."
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "No cached months yet. Skipping retrain and leaving the committed results alone."
+          fi
+
+      - name: Retrain and score
+        if: steps.data.outputs.present == 'true'
+        run: python scripts/run_experiment.py
+
+      - name: Rebuild dashboard
+        if: steps.data.outputs.present == 'true'
+        run: python scripts/build_dashboard.py
+
+      # Keeps the Power BI extracts in step with the model. Without this the
+      # published dashboard would refresh daily while the .pbix quietly went
+      # stale against it.
+      - name: Refresh Power BI extracts
+        if: steps.data.outputs.present == 'true'
+        run: python scripts/export_for_powerbi.py
+
+      - name: Commit refreshed outputs
+        if: steps.data.outputs.present == 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add dashboard.html results/ powerbi/
+          if git diff --staged --quiet; then
+            echo "nothing changed"
+          else
+            git commit -m "Refresh forecast dashboard ($(date -u +%Y-%m-%d))"
+            git push
+          fi

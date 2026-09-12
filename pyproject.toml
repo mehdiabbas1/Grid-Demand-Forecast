@@ -1,0 +1,11 @@
+[project]
+name = "gridcast"
+version = "0.1.0"
+description = "Short-term forecasting of Irish all-island electricity demand"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+# So `pytest tests/` works from the repository root with no PYTHONPATH set.
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
