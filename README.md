@@ -141,6 +141,27 @@ Regenerate the extracts with:
 python scripts/export_for_powerbi.py
 ```
 
+### Optional: save and publish the Power BI report
+
+The `.pbix` report is created in Power BI Desktop, not by Python or VS Code.
+After opening Power BI and loading the CSV extracts, save it as:
+
+```text
+powerbi/demand_forecast.pbix
+```
+
+The `.pbix` file is not included in this checkout because it must be created
+locally in Power BI Desktop. Once it exists, publish it from the project root:
+
+```powershell
+git add powerbi/demand_forecast.pbix
+git commit -m "Add Power BI report"
+git push
+```
+
+Power BI files are binary and can be large, so the CSV extracts and screenshots
+remain the portable, reproducible part of the report in this repository.
+
 ## Installation and usage
 
 ### Setup
@@ -149,6 +170,14 @@ python scripts/export_for_powerbi.py
 python -m venv .venv
 .\.venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+If PowerShell blocks activation, allow it for the current process only and run
+the activation command again:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\\.venv\\Scripts\\activate
 ```
 
 On macOS or Linux, activate the environment with `source .venv/bin/activate`.
@@ -220,6 +249,11 @@ results/                    Scores, predictions, and feature importance
 powerbi/                    Star-schema CSVs and screenshots
 dashboard.html              Published self-contained dashboard
 ```
+
+The main Python code is in `fetch_history.py`, `src/gridcast/`, and
+`scripts/`. Start with `src/gridcast/features.py` when reviewing the project:
+it contains the forecast-time feature construction and the safeguards against
+future leakage.
 
 ## Technology
 
