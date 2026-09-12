@@ -1,31 +1,31 @@
 HorizonHours,ModelName,IsBaseline,MAE,RMSE,MAPE,Bias
-1.0,Model,False,41.257,55.358,0.841,-1.038
-1.0,Naive: same time last week,True,182.981,239.588,3.667,-76.903
-1.0,Naive: same time yesterday,True,227.004,325.624,4.628,-13.098
-1.0,Naive: 4-week average,True,207.594,269.904,4.079,-173.717
-1.0,Persistence,True,193.197,259.685,3.993,-0.348
-3.0,Model,False,81.898,108.743,1.655,-4.154
-3.0,Naive: same time last week,True,182.981,239.588,3.667,-76.903
-3.0,Naive: same time yesterday,True,227.004,325.624,4.628,-13.098
-3.0,Naive: 4-week average,True,207.594,269.904,4.079,-173.717
-3.0,Persistence,True,517.668,669.502,10.778,-0.998
-6.0,Model,False,106.568,140.79,2.155,-16.325
-6.0,Naive: same time last week,True,182.981,239.588,3.667,-76.903
-6.0,Naive: same time yesterday,True,227.004,325.624,4.628,-13.098
-6.0,Naive: 4-week average,True,207.594,269.904,4.079,-173.717
-6.0,Persistence,True,851.368,1029.055,18.336,-2.667
-12.0,Model,False,116.677,153.477,2.359,-25.916
-12.0,Naive: same time last week,True,182.981,239.588,3.667,-76.903
-12.0,Naive: same time yesterday,True,227.004,325.624,4.628,-13.098
-12.0,Naive: 4-week average,True,207.594,269.904,4.079,-173.717
-12.0,Persistence,True,1069.769,1211.624,22.879,-6.917
-24.0,Model,False,119.554,154.996,2.422,-26.119
-24.0,Naive: same time last week,True,182.981,239.588,3.667,-76.903
-24.0,Naive: same time yesterday,True,227.004,325.624,4.628,-13.098
-24.0,Naive: 4-week average,True,207.594,269.904,4.079,-173.717
-24.0,Persistence,True,227.004,325.624,4.628,-13.098
-48.0,Model,False,117.707,152.39,2.384,-22.332
-48.0,Naive: same time last week,True,182.981,239.588,3.667,-76.903
-48.0,Naive: same time yesterday,True,227.004,325.624,4.628,-13.098
-48.0,Naive: 4-week average,True,207.594,269.904,4.079,-173.717
-48.0,Persistence,True,343.401,459.629,7.026,-23.626
+1.0,Model,False,41.145,53.226,0.912,-2.861
+1.0,Naive: same time last week,True,170.371,222.652,3.726,-26.922
+1.0,Naive: same time yesterday,True,211.101,289.01,4.687,0.043
+1.0,Naive: 4-week average,True,150.405,199.334,3.274,-41.923
+1.0,Persistence,True,139.012,181.553,3.117,0.191
+3.0,Model,False,80.578,109.033,1.775,-3.953
+3.0,Naive: same time last week,True,170.371,222.652,3.726,-26.922
+3.0,Naive: same time yesterday,True,211.101,289.01,4.687,0.043
+3.0,Naive: 4-week average,True,150.405,199.334,3.274,-41.923
+3.0,Persistence,True,364.593,459.715,8.14,0.294
+6.0,Model,False,101.556,139.246,2.237,-8.259
+6.0,Naive: same time last week,True,170.371,222.652,3.726,-26.922
+6.0,Naive: same time yesterday,True,211.101,289.01,4.687,0.043
+6.0,Naive: 4-week average,True,150.405,199.334,3.274,-41.923
+6.0,Persistence,True,569.054,675.554,12.96,-0.212
+12.0,Model,False,115.598,155.971,2.54,-14.144
+12.0,Naive: same time last week,True,170.371,222.652,3.726,-26.922
+12.0,Naive: same time yesterday,True,211.101,289.01,4.687,0.043
+12.0,Naive: 4-week average,True,150.405,199.334,3.274,-41.923
+12.0,Persistence,True,589.515,700.687,13.424,-0.326
+24.0,Model,False,117.781,157.658,2.586,-19.868
+24.0,Naive: same time last week,True,170.371,222.652,3.726,-26.922
+24.0,Naive: same time yesterday,True,211.101,289.01,4.687,0.043
+24.0,Naive: 4-week average,True,150.405,199.334,3.274,-41.923
+24.0,Persistence,True,211.101,289.01,4.687,0.043
+48.0,Model,False,117.863,157.7,2.597,-4.728
+48.0,Naive: same time last week,True,170.371,222.652,3.726,-26.922
+48.0,Naive: same time yesterday,True,211.101,289.01,4.687,0.043
+48.0,Naive: 4-week average,True,150.405,199.334,3.274,-41.923
+48.0,Persistence,True,316.542,408.814,7.074,2.963
